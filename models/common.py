@@ -28,6 +28,7 @@ from utils.general import (LOGGER, ROOT, Profile, check_requirements, check_suff
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import copy_attr, smart_inference_mode
 
+from utils.activations import MetaAconC
 
 def autopad(k, p=None, d=1):  # kernel, padding, dilation
     # Pad to 'same' shape outputs
@@ -46,7 +47,24 @@ class Conv(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
         self.bn = nn.BatchNorm2d(c2)
-        self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+        #self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+        
+        ## use different activation functions custom
+        
+#         self.act=nn.Tanh() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=nn.Sigmoid() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=nn.Relu() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=nn.LeakyRelu(0.1) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=nn.Hardswish() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=nn.SiLu() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=Mish() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=FRelu(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+         self.act=AconC(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()  
+#         self.act=MetaAconC(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=SiLu_beta(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=FRelu_noBN_biasFalse(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+#         self.act=nn.AconC(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
+        
 
     def forward(self, x):
         return self.act(self.bn(self.conv(x)))
