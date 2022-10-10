@@ -3,15 +3,8 @@
 Activation functions
 """
 
-
-
-
 # here mainly introduce some activation functions implemented in the target detection yolov5 algorithm, mainly design ReLU function and Its variants, including ReLU, PReLU, RReLU, FReLU, Swish, Mish, Acon series, Dynamic ReLU series.
 
-
-
-    
-    
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -70,9 +63,6 @@ class FReLU(nn.Module):
         return torch.max(x, self.bn(self.conv(x)))
 
 
-    
-    
- 
 class AconC(nn.Module):
     r""" ACON activation (activate or not)
     AconC: (p1*x-p2*x) * sigmoid(beta*(p1*x-p2*x)) + p2*x, beta is a learnable parameter

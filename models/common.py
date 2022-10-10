@@ -308,7 +308,6 @@ class Concat(nn.Module):
         return torch.cat(x, self.d)
 
 
-
 class DetectMultiBackend(nn.Module):
     # YOLOv5 MultiBackend class for python inference on various backends
     def __init__(self, weights='yolov5s.pt', device=torch.device('cpu'), dnn=False, data=None, fp16=False, fuse=True):
@@ -848,13 +847,15 @@ class Classify(nn.Module):
             x = torch.cat(x, 1)
         return self.linear(self.drop(self.pool(self.conv(x)).flatten(1)))
 
+
 ### attension mechanism
 
 
 # SE
 class SE(nn.Module):
+
     def __init__(self, c1, c2, ratio=16):
-        super(SE, self).__init__()
+        super().__init__()
         # c*1*1
         self.avgpool = nn.AdaptiveAvgPool2d(1)
         self.l1 = nn.Linear(c1, c1 // ratio, bias=False)
@@ -875,8 +876,9 @@ class SE(nn.Module):
 
 # CBAM
 class ChannelAttention(nn.Module):
+
     def __init__(self, in_planes, ratio=16):
-        super(ChannelAttention, self).__init__()
+        super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.max_pool = nn.AdaptiveMaxPool2d(1)
         self.f1 = nn.Conv2d(in_planes, in_planes // ratio, 1, bias=False)
@@ -892,8 +894,9 @@ class ChannelAttention(nn.Module):
 
 
 class SpatialAttention(nn.Module):
+
     def __init__(self, kernel_size=7):
-        super(SpatialAttention, self).__init__()
+        super().__init__()
         assert kernel_size in (3, 7), 'kernel size must be 3 or 7'
         padding = 3 if kernel_size == 7 else 1
         # (特征图的大小-算子的size+2*padding)/步长+1
@@ -914,7 +917,7 @@ class SpatialAttention(nn.Module):
 class CBAM(nn.Module):
     # CSP Bottleneck with 3 convolutions
     def __init__(self, c1, c2, ratio=16, kernel_size=7):  # ch_in, ch_out, number, shortcut, groups, expansion
-        super(CBAM, self).__init__()
+        super().__init__()
         self.channel_attention = ChannelAttention(c1, ratio)
         self.spatial_attention = SpatialAttention(kernel_size)
 
@@ -935,7 +938,7 @@ class ECA(nn.Module):
     """
 
     def __init__(self, c1, c2, k_size=3):
-        super(ECA, self).__init__()
+        super().__init__()
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         self.conv = nn.Conv1d(1, 1, kernel_size=k_size, padding=(k_size - 1) // 2, bias=False)
         self.sigmoid = nn.Sigmoid()
@@ -959,8 +962,9 @@ class ECA(nn.Module):
 
 # CA
 class h_sigmoid(nn.Module):
+
     def __init__(self, inplace=True):
-        super(h_sigmoid, self).__init__()
+        super().__init__()
         self.relu = nn.ReLU6(inplace=inplace)
 
     def forward(self, x):
@@ -968,8 +972,9 @@ class h_sigmoid(nn.Module):
 
 
 class h_swish(nn.Module):
+
     def __init__(self, inplace=True):
-        super(h_swish, self).__init__()
+        super().__init__()
         self.sigmoid = h_sigmoid(inplace=inplace)
 
     def forward(self, x):
@@ -977,8 +982,9 @@ class h_swish(nn.Module):
 
 
 class CoordAtt(nn.Module):
+
     def __init__(self, inp, oup, reduction=32):
-        super(CoordAtt, self).__init__()
+        super().__init__()
         self.pool_h = nn.AdaptiveAvgPool2d((None, 1))
         self.pool_w = nn.AdaptiveAvgPool2d((1, None))
         mip = max(8, inp // reduction)
@@ -1051,8 +1057,15 @@ class C3SE(C3):
 # C3CBAM
 class CBAMBottleneck(nn.Module):
     # Standard bottleneck
-    def __init__(self, c1, c2, shortcut=True, g=1, e=0.5, ratio=16, kernel_size=7):  # ch_in, ch_out, shortcut, groups, expansion
-        super(CBAMBottleneck, self).__init__()
+    def __init__(self,
+                 c1,
+                 c2,
+                 shortcut=True,
+                 g=1,
+                 e=0.5,
+                 ratio=16,
+                 kernel_size=7):  # ch_in, ch_out, shortcut, groups, expansion
+        super().__init__()
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
         self.cv2 = Conv(c_, c2, 3, 1, g=g)
@@ -1080,7 +1093,14 @@ class C3CBAM(C3):
 # C3ECA
 class ECABottleneck(nn.Module):
     # Standard bottleneck
-    def __init__(self, c1, c2, shortcut=True, g=1, e=0.5, ratio=16, k_size=3):  # ch_in, ch_out, shortcut, groups, expansion
+    def __init__(self,
+                 c1,
+                 c2,
+                 shortcut=True,
+                 g=1,
+                 e=0.5,
+                 ratio=16,
+                 k_size=3):  # ch_in, ch_out, shortcut, groups, expansion
         super().__init__()
         c_ = int(c2 * e)  # hidden channels
         self.cv1 = Conv(c1, c_, 1, 1)
@@ -1130,7 +1150,7 @@ class CABottleneck(nn.Module):
         self.conv_w = nn.Conv2d(mip, c2, kernel_size=1, stride=1, padding=0)
 
     def forward(self, x):
-        x1=self.cv2(self.cv1(x))
+        x1 = self.cv2(self.cv1(x))
         n, c, h, w = x.size()
         # c*1*W
         x_h = self.pool_h(x1)
@@ -1157,4 +1177,4 @@ class C3CA(C3):
     def __init__(self, c1, c2, n=1, shortcut=True, g=1, e=0.5):
         super().__init__(c1, c2, n, shortcut, g, e)
         c_ = int(c2 * e)  # hidden channels
-        self.m = nn.Sequential(*(CABottleneck(c_, c_,shortcut) for _ in range(n)))
+        self.m = nn.Sequential(*(CABottleneck(c_, c_, shortcut) for _ in range(n)))
