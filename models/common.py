@@ -28,7 +28,6 @@ from utils.general import (LOGGER, ROOT, Profile, check_requirements, check_suff
 from utils.plots import Annotator, colors, save_one_box
 from utils.torch_utils import copy_attr, smart_inference_mode
 
-from utils.activations import MetaAconC
 
 def autopad(k, p=None, d=1):  # kernel, padding, dilation
     # Pad to 'same' shape outputs
@@ -39,8 +38,6 @@ def autopad(k, p=None, d=1):  # kernel, padding, dilation
     return p
 
 
-
-
 class Conv(nn.Module):
     # Standard convolution with args(ch_in, ch_out, kernel, stride, padding, groups, dilation, activation)
     default_act = nn.SiLU()  # default activation
@@ -49,24 +46,7 @@ class Conv(nn.Module):
         super().__init__()
         self.conv = nn.Conv2d(c1, c2, k, s, autopad(k, p, d), groups=g, dilation=d, bias=False)
         self.bn = nn.BatchNorm2d(c2)
-        #self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-        
-        ## use different activation functions custom
-        
-#         self.act=nn.Tanh() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=nn.Sigmoid() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=nn.Relu() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=nn.LeakyRelu(0.1) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=nn.Hardswish() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=nn.SiLu() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=Mish() if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=FRelu(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-         self.act=AconC(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()  
-#         self.act=MetaAconC(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=SiLu_beta(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=FRelu_noBN_biasFalse(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-#         self.act=nn.AconC(c2) if act is True else act if isinstance(act, nn.Module) else nn.Identity()
-        
+        self.act = self.default_act if act is True else act if isinstance(act, nn.Module) else nn.Identity()
 
     def forward(self, x):
         return self.act(self.bn(self.conv(x)))
@@ -74,60 +54,6 @@ class Conv(nn.Module):
     def forward_fuse(self, x):
         return self.act(self.conv(x))
 
-
-
-class ChannelAttension(nn.Model):
-  def __init__(self,in_planes,ratio=16):
-    
-    super(ChannelAttention,self).__init__()
-    self.avg_pool=nn.AdaptiveAvgPool2d(1)
-    self.max_pool=nn.AdaptiveMaxPool2d(1)
-    self.f1=nn.Conv2d(in_planes // ration,1,bias=False)
-    self.relu=nn.ReLU()
-    self.f2=nn.Conv2d(in_places // ratio, in_planes,1,bias=False)
-    self.sigmoid=nn.Sigmoid()
-  
-  def forward(self,x):
-    avg_out =self.f2(self.f1(self.avg_pool(x))))
-    max_out =self.f2(self.f1(self.avg_pool(x))))
-    return torch.mul(x,out)
-  
-
-## attenstion mechanism block
-
-class SpatialAttention(nn.Module):
-  def __init__(self,kernel_size=7):
-    super(SpatilAttenion,self).__init__()
-    
-    assert kerel_size in (3,7),'kernal size must be 3 or 7'
-    padding =3 if kernel_size ==7 else 1
-    
-    self.conv =nn.Conv2d(2,1,kernel_size,padding=padding,bias=False)
-    self.sigmoid =nn.Sigmoid()
-  def forward(self,x):
-    avg_out=torch.mean(x,dim=1,keepdim=True)
-    max_out, _ = torch.max(x,dim=1,keepdim=True)
-    out = torch.cat([avg_out,max_out],dim=1)
-    out =self.sigmoid(self.conv(out))
-    return torch.mult(x,out)
-
-class CBAMC3(nn.Module):
-  def __init__(self,c1,c2,n=1,shortcut=True,g=1,e=0.5):
-    super(CBAMC3,self,self).__init__()
-    c_ = int(c2 * e)
-    self.cv1= Conv(c1,c_,1,1)
-    self.cv2= Conv(c1,c_,1,1)
-    self.cv3= Conv(2,c_,c2,1)
-
-    self.m =nn.Sequential(*[Bottleneck(c_,c_,shortcut,g,e=1.0) for _ in range(n)])
-    self.channel_attenion = ChannelAttention(c2,16)
-    self.spatial_attention = SpatialAttention(7)
-  
-  def forward(self,x):
-    return self.spatial_attention(self.channel_attention(self.cv3(torch.cat((self.m(self.cv1(x)),self.cv2(x)),dim=1))
- 
-  
-  
 
 class DWConv(Conv):
     # Depth-wise convolution
@@ -260,6 +186,90 @@ class C3SPP(C3):
         c_ = int(c2 * e)
         self.m = SPP(c_, c_, k)
 
+###### ATTENSION Mech
+
+
+
+class ChannelAttension(nn.Module):
+
+    def __init__(self,in_planes,ratio=16):
+        super(ChannelAttension,self).__init__()
+        self.avg_pool =nn.AdaptiveAvgPool2d(1)
+        self.max_pool=nn.AdaptiveAvgPool2d(1)
+
+        self.f1 = nn.Conv2d(in_planes,in_planes // ratio,1,bias=False)
+        self.relu =nn.ReLU()
+        self.f2=nn.Conv2d(in_planes //ratio,in_planes,1,bias=False)
+
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self,x):
+        avg_out = self.f2(self.relu(self.f1(self.avg_pool(x))))
+        max_out=self.f2(self.relu(self.f1(self.max_pool(x))))
+
+        out= self.sigmoid(avg_out+max_out)
+
+        return torch.mul(x,out)
+
+
+
+class SpatialAttention(nn.Module):
+
+    def __init__(self,kernel_size=7):
+        super(SpatialAttention,self).__init__()
+        
+        assert kernel_size in (3,7),'kernal size must be 3 or 7'
+        padding =3 if kernel_size ==7 else 1
+        
+        self.conv =nn.Conv2d(2,1,kernel_size,padding=padding,bias=False)
+        self.sigmoid =nn.Sigmoid()
+    
+    def forward(self,x):
+        
+        avg_out=torch.mean(x,dim=1,keepdim=True)
+        max_out, _ = torch.max(x,dim=1,keepdim=True)
+        out = torch.cat([avg_out,max_out],dim=1)
+        out = self.sigmoid(self.conv(out))
+        return torch.mult(x,out)
+
+class CBAMC3(nn.Module):
+    def __init__(self,c1,c2,n=1,shortcut=True,g=1,e=0.5):
+        super(CBAMC3,self).__init__()
+        c_ = int(c2 * e)
+        self.cv1= Conv(c1,c_,1,1)
+        self.cv2= Conv(c1,c_,1,1)
+        self.cv3= Conv(2,c_,c2,1)
+
+        self.m =nn.Sequential(*[Bottleneck(c_,c_,shortcut,g,e=1.0) for _ in range(n)])
+        self.channel_attention = ChannelAttension(c2,16)
+        self.spatial_attention = SpatialAttention(7)
+  
+    def forward(self,x):
+        return self.spatial_attention(self.channel_attention(self.cv3(torch.cat((self.m(self.cv1(x)),self.cv2(x)),dim=1))))
+
+## SE #squeeze & execution attension
+
+class SE(nn.Module):
+    def __init__(self,c1,c2,r=16):
+        super(SE,self).__init__()
+        self.avgpool=nn.AdaptiveAvgPool2d(1)
+        self.l1=nn.Linear(c1,c1 //r,bias=False)
+        self.relu=nn.ReLU(inplace=True)
+        self.l2=nn.Linear(c1 // r,c1,bias=False)
+        self.sig=nn.Sigmoid()
+
+    def forward(self,x):
+        #pprint(x.size())
+        b,c,_,_ = x.size()
+        y = self.avgpool(x).view(b,c)
+        y = self.l1(y)
+        y = self.relu(y)
+        y = self.l2(y)
+        y = self.sig(y)
+        y = y.view(b,c,1,1)
+
+        return x*y.expand_as(x)
+
 
 class C3Ghost(C3):
     # C3 module with GhostBottleneck()
@@ -380,6 +390,15 @@ class Concat(nn.Module):
 
     def forward(self, x):
         return torch.cat(x, self.d)
+
+##attension mech
+
+
+## attenstion mechanism block
+
+
+
+
 
 
 class DetectMultiBackend(nn.Module):
