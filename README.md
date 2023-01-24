@@ -225,6 +225,8 @@ YOLOv5 has been designed to be super easy to get started and simple to learn. We
 <details>
   <summary>Table Notes (click to expand)</summary>
 
+
+
 - All checkpoints are trained to 300 epochs with default settings. Nano and Small models use [hyp.scratch-low.yaml](https://github.com/ultralytics/yolov5/blob/master/data/hyps/hyp.scratch-low.yaml) hyps, all others use [hyp.scratch-high.yaml](https://github.com/ultralytics/yolov5/blob/master/data/hyps/hyp.scratch-high.yaml).
 - **mAP<sup>val</sup>** values are for single-model single-scale on [COCO val2017](http://cocodataset.org) dataset.<br>Reproduce by `python val.py --data coco.yaml --img 640 --conf 0.001 --iou 0.65`
 - **Speed** averaged over COCO val images using a [AWS p3.2xlarge](https://aws.amazon.com/ec2/instance-types/p3/) instance. NMS times (~1 ms/img) not included.<br>Reproduce by `python val.py --data coco.yaml --img 640 --task speed --batch 1`
@@ -235,6 +237,9 @@ YOLOv5 has been designed to be super easy to get started and simple to learn. We
 ## <div align="center">Classification ⭐ NEW</div>
 
 YOLOv5 [release v6.2](https://github.com/ultralytics/yolov5/releases) brings support for classification model training, validation, prediction and export! We've made training classifier models super simple. Click below to get started.
+
+### Yolov5 on Imagnet1000 :
+#### Gradio demo live : https://huggingface.co/spaces/akashAD/yolov5-classify
 
 <details>
   <summary>Classification Checkpoints (click to expand)</summary>
@@ -273,6 +278,10 @@ We trained YOLOv5-cls classification models on ImageNet for 90 epochs using a 4x
 
 <details>
   <summary>Classification Usage Examples (click to expand)</summary>
+  
+  
+
+
 
 ### Train
 YOLOv5 classification training supports auto-download of MNIST, Fashion-MNIST, CIFAR10, CIFAR100, Imagenette, Imagewoof, and ImageNet datasets with the `--data` argument. To start training on MNIST for example use `--data mnist`.
