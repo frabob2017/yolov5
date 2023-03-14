@@ -850,8 +850,15 @@ class Classify(nn.Module):
 
 ### attension mechanism
 
-
-# CBAM
+"""
+CBAM
+Yu Cai learned from this code from the paper 
+https://openaccess.thecvf.com/content_ECCV_2018/papers/Sanghyun_Woo_Convolutional_Block_Attention_ECCV_2018_paper.pdf 
+and from 
+https://github.com/akashAD98/yolov5
+Yu Cai implemented this code again to understand it
+The Attention in fact is to calculate the weight factors and apply it to the input features to give them the corresponding weights.
+"""
 class ChannelAttention(nn.Module):
 
     def __init__(self, in_planes, ratio=16):
